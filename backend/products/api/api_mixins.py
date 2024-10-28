@@ -1,3 +1,4 @@
+from products.api.filters import ProductFilter
 from .serializer import ProductSerializer
 from rest_framework import viewsets 
 from products.models import Product
@@ -10,7 +11,26 @@ from rest_framework import mixins
 from rest_framework import permissions
 from rest_framework import authentication
 from .permissions import DjangoCustomModelsPermission
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework import pagination
+from django_filters import rest_framework as filters
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+# imporrt cache 
+from django.core.cache import cache
 
+
+class CustomPaginationClass(pagination.LimitOffsetPagination):
+    default_limit = 5
+    max_limit = 100
+
+
+class CustomThrottleClass(UserRateThrottle, AnonRateThrottle):
+    scope = 'products'
+    rate = '1/min'
+    rate_key = 'ip'
+
+
+    
 
 class ProductMixinApiView(
         mixins.CreateModelMixin,
@@ -21,24 +41,35 @@ class ProductMixinApiView(
         generics.GenericAPIView
     ):
     
+    # caching use for queryset 
+    product_cache_key = 'product_cache_key'
+    if cache.get(product_cache_key):
+        queryset = cache.get(product_cache_key)
+    else:
+        queryset = Product.objects.all()
+        cache.set(product_cache_key, queryset, 380) # 60 secondes
+        
     queryset = Product.objects.all()
+    pagination_class = CustomPaginationClass
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = ProductFilter
     serializer_class = ProductSerializer
-    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication]
+    throttle_classes = [CustomThrottleClass]
+    authentication_classes = [authentication.SessionAuthentication, authentication.TokenAuthentication, JWTAuthentication]
     permission_classes = [DjangoCustomModelsPermission] #isAuthenticatedOrReadOnly, IsAdminUser, IsAuthenticated, DjangoModelPermission
     http_method_names = ['get', 'post', 'put', 'patch', 'delete']
     # auth session auth token(token simple et bearer) jwt(json web token) access token et refresh token
-    def create(self, request, *args, **kwargs):
-        data = request.data 
-        data = data['user'] = request.user
-        email = data.pop('email')
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
     
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:
+            # operation = Operation()
+            # operation.author = self.request.user
+            # operation.entrer = 'get_queryset of ProductMixinApiView'
+            # operation.sortie = 'get_queryset of ProductMixinApiView of this number of product {}'.format(self.queryset.count())
+            # operation.status_code = 200
+            # operation.ip_adddress = self.request.META.get('REMOTE_ADDR')
+            # operation.save()
             return super().get_queryset()
         return super().get_queryset().filter(user=self.request.user)
     

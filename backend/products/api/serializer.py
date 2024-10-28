@@ -52,6 +52,11 @@ class ProductSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('The name is too short')
         return value
     
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        validated_data.pop('email')
+        return super().create(validated_data)
+    
 
 
 class ProductSerializerUser(serializers.ModelSerializer):

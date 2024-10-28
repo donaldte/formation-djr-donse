@@ -34,7 +34,7 @@ class DjangoCustomModelsPermission(permissions.DjangoModelPermissions):
         if request.user.is_staff:
             if request.method in ['POST', 'PUT', 'PATCH', 'DELETE']:
                 user = request.user
-                if user.has_perms('products.add_product', 'products.change_product', 'products.delete_product'):
+                if user.has_perms(['products.add_product', 'products.change_product', 'products.delete_product']):
                     return True
         
         if request.user.is_authenticated:
