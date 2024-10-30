@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
+from rest_framework import status
 
 # models viewset
 # mixins 
@@ -40,7 +41,7 @@ def product_detail_api(request, pk=None, *args, **kwargs):
             if description is None:
                 description = 'No description'
             serializer.save(description=description)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors)   
     
     elif request.method == 'PUT':

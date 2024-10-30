@@ -20,6 +20,22 @@ class Product(models.Model):
         return self.price - 1000
     
     
+    def get_product_name(self):
+        return self.name
+    
+    
+    def get_product_description(self):
+        return self.description
+    
+    
+    def get_product_price(self):
+        return self.price
+    
+    
+    def get_product_user(self):
+        return self.user.username
+    
+    
 """
 django 2.0 l'eureur n + 1 
 product = Product.objects.all().select_related('user') # jointure sql sur les foreign key et one to one

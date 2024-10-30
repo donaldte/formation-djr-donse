@@ -53,7 +53,9 @@ class ProductSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['user'] = self.context['request'].user
         validated_data.pop('email')
         return super().create(validated_data)
     
